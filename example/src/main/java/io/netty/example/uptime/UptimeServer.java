@@ -44,8 +44,11 @@ public final class UptimeServer {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
+                    // handler
                     .handler(new LoggingHandler(LogLevel.INFO))
+                    // childrenHandler
                     .childHandler(new ChannelInitializer<SocketChannel>() {
+                        // TODO 1
                         @Override
                         public void initChannel(SocketChannel ch) {
                             ch.pipeline().addLast(handler);
