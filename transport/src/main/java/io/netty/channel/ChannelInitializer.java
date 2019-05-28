@@ -107,6 +107,9 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * 初始化一次handler，初始化结束删除该handler
+     */
     private boolean initChannel(ChannelHandlerContext ctx) throws Exception {
         if (initMap.putIfAbsent(ctx, Boolean.TRUE) == null) { // Guard against re-entrance.
             try {

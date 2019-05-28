@@ -30,10 +30,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class MultithreadEventExecutorGroup extends AbstractEventExecutorGroup {
 
+    // 事件执行器数组
     private final EventExecutor[] children;
+    // 事件执行器的快照
     private final Set<EventExecutor> readonlyChildren;
+    // 终止执行器的计数器
     private final AtomicInteger terminatedChildren = new AtomicInteger();
+    // 一个全局事件执行器的断言
     private final Promise<?> terminationFuture = new DefaultPromise(GlobalEventExecutor.INSTANCE);
+    // 事件执行器的选择器
     private final EventExecutorChooserFactory.EventExecutorChooser chooser;
 
     /**
@@ -72,15 +77,17 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             throw new IllegalArgumentException(String.format("nThreads: %d (expected: > 0)", nThreads));
         }
 
+        // 如果未设置策略，则默认为每个任务生成一个数据
         if (executor == null) {
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
-
+        //  生成相应的事件执行器数组
         children = new EventExecutor[nThreads];
 
         for (int i = 0; i < nThreads; i ++) {
             boolean success = false;
             try {
+                // 生成执行器，后面通过next()来获取。具体执行器由子类来实现
                 children[i] = newChild(executor, args);
                 success = true;
             } catch (Exception e) {
@@ -108,18 +115,21 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             }
         }
 
+        // 默认的事件执行器选择器
         chooser = chooserFactory.newChooser(children);
 
         final FutureListener<Object> terminationListener = new FutureListener<Object>() {
             @Override
             public void operationComplete(Future<Object> future) throws Exception {
                 if (terminatedChildren.incrementAndGet() == children.length) {
+                    // 如果事件执行器全部终止，则断言success
                     terminationFuture.setSuccess(null);
                 }
             }
         };
 
         for (EventExecutor e: children) {
+            // 每个执行器关闭时增加监听器
             e.terminationFuture().addListener(terminationListener);
         }
 

@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * {@link SingleThreadEventLoop} implementation which register the {@link Channel}'s to a
  * {@link Selector} and so does the multi-plexing of these in the event loop.
- *
+ * <p>channel注册到selector上</p>
  */
 public final class NioEventLoop extends SingleThreadEventLoop {
 
@@ -148,6 +148,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             throw new NullPointerException("selectStrategy");
         }
         provider = selectorProvider;
+        // 生成selector
         final SelectorTuple selectorTuple = openSelector();
         selector = selectorTuple.selector;
         unwrappedSelector = selectorTuple.unwrappedSelector;
@@ -400,6 +401,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         logger.info("Migrated " + nChannels + " channel(s) to the new Selector.");
     }
 
+    // TODO  eventLoop接受一个任务时调用
     @Override
     protected void run() {
         for (;;) {
@@ -452,7 +454,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     try {
                         processSelectedKeys();
                     } finally {
-                        // Ensure we always run tasks.
+                        // TODO 跑所有的任务
                         runAllTasks();
                     }
                 } else {
@@ -597,6 +599,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    // channel处理
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
         if (!k.isValid()) {
@@ -735,6 +738,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             for (;;) {
                 long timeoutMillis = (selectDeadLineNanos - currentTimeNanos + 500000L) / 1000000L;
+                // 定时任务临近，终止循环，退出去前如果没有进行过select，进行一次select
                 if (timeoutMillis <= 0) {
                     if (selectCnt == 0) {
                         selector.selectNow();
@@ -747,12 +751,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // Selector#wakeup. So we need to check task queue again before executing select operation.
                 // If we don't, the task might be pended until select operation was timed out.
                 // It might be pended until idle timeout if IdleStateHandler existed in pipeline.
+                // TODO 轮询过程中发现有任务加入，中断本次轮询
                 if (hasTasks() && wakenUp.compareAndSet(false, true)) {
                     selector.selectNow();
                     selectCnt = 1;
                     break;
                 }
 
+                // 阻塞式select
                 int selectedKeys = selector.select(timeoutMillis);
                 selectCnt ++;
 
@@ -777,7 +783,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     selectCnt = 1;
                     break;
                 }
-
+                // jdk nio bug fix
                 long time = System.nanoTime();
                 if (time - TimeUnit.MILLISECONDS.toNanos(timeoutMillis) >= currentTimeNanos) {
                     // timeoutMillis elapsed without anything selected.

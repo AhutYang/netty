@@ -79,8 +79,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             AtomicReferenceFieldUpdater.newUpdater(
                     SingleThreadEventExecutor.class, ThreadProperties.class, "threadProperties");
 
+    // 任务队列
     private final Queue<Runnable> taskQueue;
-
+    // 执行器真正线程
     private volatile Thread thread;
     @SuppressWarnings("unused")
     private volatile ThreadProperties threadProperties;
@@ -89,8 +90,11 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     private final Semaphore threadLock = new Semaphore(0);
     private final Set<Runnable> shutdownHooks = new LinkedHashSet<Runnable>();
+    //  true的时候，调用addTask() 方法调用时唤醒执行线程
     private final boolean addTaskWakesUp;
+    // 最大的任务数，超过此数将会拒绝
     private final int maxPendingTasks;
+    // 拒绝处理器
     private final RejectedExecutionHandler rejectedExecutionHandler;
 
     private long lastExecutionTime;
@@ -755,6 +759,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         return isTerminated();
     }
 
+    // TODO 执行器开始工作 called by AbstractChannel#eventLoop#run()
     @Override
     public void execute(Runnable task) {
         if (task == null) {
@@ -762,6 +767,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
 
         boolean inEventLoop = inEventLoop();
+        // 加入到taskQueue中
         addTask(task);
         if (!inEventLoop) {
             startThread();
@@ -855,6 +861,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     private static final long SCHEDULE_PURGE_INTERVAL = TimeUnit.SECONDS.toNanos(1);
 
+    /**
+     * 仅仅开启一个线程
+     */
     private void startThread() {
         if (state == ST_NOT_STARTED) {
             if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {
@@ -868,6 +877,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
     }
 
+    /**
+     * 启动一个线程去执行队列中的任务
+     */
     private void doStartThread() {
         assert thread == null;
         executor.execute(new Runnable() {
