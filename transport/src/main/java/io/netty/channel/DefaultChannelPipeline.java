@@ -677,6 +677,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    // 在注册完成前, 调用回调[仅仅调用一次]
     final void invokeHandlerAddedIfNeeded() {
         assert channel.eventLoop().inEventLoop();
         if (firstRegistration) {
@@ -1272,6 +1273,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             setAddComplete();
         }
 
+        // TODO 尾部handler是尾部上下文本身
         @Override
         public ChannelHandler handler() {
             return this;
@@ -1336,6 +1338,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             setAddComplete();
         }
 
+        // TODO 头部handler是头部上下文本身
         @Override
         public ChannelHandler handler() {
             return this;
@@ -1404,6 +1407,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
             invokeHandlerAddedIfNeeded();
+            // 在此处理渠道注册行为，并通过当前上下文的fireChannelRegistered()行为传递到下一个handler
             ctx.fireChannelRegistered();
         }
 
