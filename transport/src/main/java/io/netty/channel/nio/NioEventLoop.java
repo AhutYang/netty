@@ -153,6 +153,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         selector = selectorTuple.selector;
         unwrappedSelector = selectorTuple.unwrappedSelector;
         selectStrategy = strategy;
+        logger.info("NioEventLoop:{}, selector:{}", this, selector);
     }
 
     private static final class SelectorTuple {
@@ -577,9 +578,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // null out entry in the array to allow to have it GC'ed once the Channel close
             // See https://github.com/netty/netty/issues/2363
             selectedKeys.keys[i] = null;
-
+            // AbstractNioChannel#doRegister#l387
             final Object a = k.attachment();
-
+            logger.info("selectedKey:{}, attachment:{}", k, a);
             if (a instanceof AbstractNioChannel) {
                 processSelectedKey(k, (AbstractNioChannel) a);
             } else {
@@ -625,6 +626,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
 
         try {
+            logger.info("NioEventLoop:{}, SelectionKey:{}, Channel:{}, readyOps:{}", this, k, ch, k.readyOps());
             int readyOps = k.readyOps();
             // We first need to call finishConnect() before try to trigger a read(...) or write(...) as otherwise
             // the NIO JDK channel implementation may throw a NotYetConnectedException.

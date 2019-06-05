@@ -245,8 +245,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             final Channel child = (Channel) msg;
-            System.out.println(child);
-
+            // bossGroup的NioEventLoop处理accept的时候，注册生成的channel。
             child.pipeline().addLast(childHandler);
 
             setChannelOptions(child, childOptions, logger);
